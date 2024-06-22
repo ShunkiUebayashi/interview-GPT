@@ -15,11 +15,12 @@ from helpers import (
 
 app = Flask(__name__)
 app.secret_key = "your_secret_key"
+summarize_num = 5
 
 
 @app.route("/")
 def home():
-    return render_template("home.html")
+    return redirect(url_for("settings"))
 
 
 @app.route("/settings", methods=["GET", "POST"])
@@ -28,6 +29,11 @@ def settings():
         session["api_key"] = request.form["api_key"]
         session["model"] = request.form["model"]
         session["theme"] = request.form["theme"]
+        session.pop("conversations", None)
+        session.pop("results", None)
+        session.pop("summary", None)
+        session.pop("full_conversation_history", None)
+        flash("設定が完了し、チャットがリセットされました。")
         return redirect(url_for("main"))
     return render_template("settings.html")
 
@@ -46,7 +52,14 @@ def main():
             flash("チャットがリセットされました。")
             return redirect(url_for("main"))
 
+        if "change_theme" in request.form:
+            return redirect(url_for("change_theme"))
+
         if "evaluate" in request.form:
+            if "full_conversation_history" not in session or len(session["full_conversation_history"]) == 0:
+                flash("対話が開始されていないため、評価できません。")
+                return redirect(url_for("main"))
+
             session["conversations"].append(
                 {
                     "role": "user",
@@ -62,7 +75,7 @@ def main():
 
             all_conversations = "\n".join(
                 [
-                    f"{'面接官' if conv['role'] == 'assistant' else 'ユーザ'}: {conv['content']}"
+                    f"{'面接官: ' if conv['role'] == 'assistant' else 'ユーザ: '}{conv['content']}"
                     for conv in session["full_conversation_history"]
                 ]
             )
@@ -75,88 +88,111 @@ def main():
                 results=session.get("results", []),
             )
 
-        user_message = request.form["message"]
+        user_message = request.form.get("message", "").strip()
+        model = request.form["model"]
+        session["model"] = model
+
         if user_message.lower() == "exit":
             return render_template(
                 "results.html", conversations=session["full_conversation_history"], results=session["results"]
             )
 
-        api_key = session["api_key"]
-        model = session["model"]
-        theme = session["theme"]
+        if user_message:
+            api_key = session["api_key"]
+            theme = session["theme"]
 
-        # Initialize OpenAI API
-        openai.api_key = api_key
+            # Initialize OpenAI API
+            openai.api_key = api_key
 
-        dialog = user_message
-        summary = session.get("summary", "")
+            dialog = user_message
+            summary = session.get("summary", "")
 
-        if "full_conversation_history" not in session:
-            session["full_conversation_history"] = []
+            if "full_conversation_history" not in session:
+                session["full_conversation_history"] = []
 
-        # Save the full conversation history
-        session["full_conversation_history"].append({"role": "user", "content": user_message, "deviation": None})
+            # Save the full conversation history
+            session["full_conversation_history"].append({"role": "user", "content": user_message, "deviation": None})
 
-        try:
-            jd = judge(model, theme, summary, dialog)
-            rj = result_judging(jd)
+            try:
+                jd = judge(model, theme, summary, session["full_conversation_history"])
+                rj = result_judging(jd)
 
-            # Save deviation result
-            session["full_conversation_history"][-1]["deviation"] = jd
+                # Save deviation result
+                session["full_conversation_history"][-1]["deviation"] = jd
 
-            # Determine if it's time to summarize
-            turn_count = len(session["full_conversation_history"]) // 2
-            if turn_count >= 15 and turn_count % 15 == 0:
-                summary = summarize(model, theme, dialog, summary)
-                session["summary"] = summary
+                # Determine if it's time to summarize
+                turn_count = len(session["full_conversation_history"]) // 2
+                print(turn_count)
+                if turn_count >= summarize_num and turn_count % summarize_num == 0:
+                    summary = summarize(model, theme, session["full_conversation_history"], summary)
+                    session["summary"] = summary
 
-            if "conversations" not in session:
-                session["conversations"] = []
+                if "conversations" not in session:
+                    session["conversations"] = []
 
-            if "results" not in session:
-                session["results"] = []
+                if "results" not in session:
+                    session["results"] = []
 
-            session["conversations"].append({"role": "user", "content": user_message})
-            session["results"].append({"dialog": dialog, "result": jd})
+                session["conversations"].append({"role": "user", "content": user_message})
+                session["results"].append({"dialog": dialog, "result": jd})
 
-            # Generate the next response based on summary and recent dialog
-            if turn_count < 15 or turn_count % 15 != 0:
-                recent_dialog = "\n".join(
-                    [
-                        f"{'面接官' if conv['role'] == 'assistant' else 'ユーザ'}: {conv['content']}"
-                        for conv in session["full_conversation_history"][-10:]
-                    ]
+                # Generate the next response based on summary and recent dialog
+                if turn_count < summarize_num or turn_count % summarize_num != 0:
+                    recent_dialog = "\n".join(
+                        [
+                            f"{'面接官: ' if conv['role'] == 'assistant' else 'ユーザ: '}{conv['content']}"
+                            for conv in session["full_conversation_history"][-10:]
+                        ]
+                    )
+                else:
+                    recent_dialog = f"要約待ち" + "\n".join(
+                        [
+                            f"{'面接官: ' if conv['role'] == 'assistant' else 'ユーザ: '}{conv['content']}"
+                            for conv in session["full_conversation_history"][-10:]
+                        ]
+                    )
+
+                response = generate_question(model, theme, summary, recent_dialog)
+                session["conversations"].append({"role": "assistant", "content": response})
+
+                # Save the assistant response to the full conversation history
+                session["full_conversation_history"].append(
+                    {"role": "assistant", "content": response, "deviation": None}
                 )
-            else:
-                recent_dialog = f"要約: {summary}\n" + "\n".join(
-                    [
-                        f"{'面接官' if conv['role'] == 'assistant' else 'ユーザ'}: {conv['content']}"
-                        for conv in session["full_conversation_history"][-10:]
-                    ]
-                )
 
-            response = generate_question(model, theme, summary, recent_dialog)
-            session["conversations"].append({"role": "assistant", "content": response})
+                # デバッグ用の出力を追加
+                # print("Full Conversation History:", session["full_conversation_history"])
 
-            # Save the assistant response to the full conversation history
-            session["full_conversation_history"].append({"role": "assistant", "content": response, "deviation": None})
+                # Ensure the session is saved
+                session.modified = True
 
-            # デバッグ用の出力を追加
-            print("Full Conversation History:", session["full_conversation_history"])
-
-            # Ensure the session is saved
-            session.modified = True
-
-        except openai.error.RateLimitError:
-            flash("APIのリクエスト制限を超過しました。しばらくしてから再試行してください。")
-        except openai.error.InvalidRequestError as e:
-            flash(f"無効なリクエスト: {e}")
-        except openai.error.OpenAIError as e:
-            flash(f"OpenAI APIエラー: {e}")
+            except openai.error.RateLimitError:
+                flash("APIのリクエスト制限を超過しました。しばらくしてから再試行してください。")
+            except openai.error.InvalidRequestError as e:
+                flash(f"無効なリクエスト: {e}")
+            except openai.error.OpenAIError as e:
+                flash(f"OpenAI APIエラー: {e}")
 
     return render_template(
         "main.html", conversations=session.get("full_conversation_history", []), results=session.get("results", [])
     )
+
+
+@app.route("/change_theme", methods=["GET", "POST"])
+def change_theme():
+    if request.method == "POST":
+        if "cancel" in request.form:
+            return redirect(url_for("main"))
+        if "submit" in request.form:
+            session["theme"] = request.form["theme"]
+            session.pop("conversations", None)
+            session.pop("results", None)
+            session.pop("summary", None)
+            session.pop("full_conversation_history", None)
+            flash("テーマが変更され、チャットがリセットされました。")
+            return redirect(url_for("main"))
+
+    return render_template("change_theme.html", current_theme=session.get("theme", ""))
 
 
 if __name__ == "__main__":

@@ -42,14 +42,22 @@ def generate_top_low(model, prompt):
     return response.choices[0].message["content"].strip()
 
 
-def summarize(model, theme, text, summary):
-    prompt = make_prompt_summary(theme, text, summary)
+def summarize(model, theme, conversation_history, summary):
+    dialog = "\n".join(
+        [
+            f"{'面接官: ' if conv['role'] == 'assistant' else 'ユーザ: '}{conv['content']}"
+            for conv in conversation_history
+        ]
+    )
+    prompt = make_prompt_summary(theme, dialog, summary)
     return generate(model, prompt)
 
 
 def senetence_juding(theme, summary, dialog):
+    print(summary)
+    print(dialog)
     if len(summary) > 0:
-        return f"""テーマとこれまでの対話の要約、直近の対話が与えられるので、対話がテーマから逸脱しているかどうかを判定してください。逸脱していれば「逸脱」と回答し、そうでなければ「関連」と回答してください。ただし、挨拶は「関連」と回答するようにしてください。
+        return f"""テーマとこれまでの対話の要約、直近の対話が与えられるので、対話がテーマから逸脱しているかどうかを判定してください。逸脱していれば「逸脱」と回答し、そうでなければ「関連」と回答してください。
 テーマ : {theme}
 要約 : {summary}
 対話 : {dialog}
@@ -63,8 +71,14 @@ def senetence_juding(theme, summary, dialog):
 回答は「逸脱」か「関連」の一語のみで行い、それ以外の説明は行わないようにしてください。"""
 
 
-def judge(model, theme, summary, dialog):
-    prompt = senetence_juding(theme, summary, dialog)
+def judge(model, theme, summary, conversation_history):
+    recent_dialog = "\n".join(
+        [
+            f"{'面接官: ' if conv['role'] == 'assistant' else 'ユーザ: '}{conv['content']}"
+            for conv in conversation_history[-10:]
+        ]
+    )
+    prompt = senetence_juding(theme, summary, recent_dialog)
     return generate_top_low(model, prompt)
 
 

@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <title>テーマ変更画面</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+
+<body>
+    <h1>テーマ変更画面</h1>
+    <p>現在のテーマ: {{ current_theme }}</p>
+    <form action="{{ url_for('change_theme') }}" method="post">
+        <label for="theme">新しいテーマ:</label>
+        <input type="text" id="theme" name="theme"><br>
+        <button type="submit" name="submit">変更</button>
+        <button type="submit" name="cancel">キャンセル</button>
+    </form>
+</body>
+
+</html>
