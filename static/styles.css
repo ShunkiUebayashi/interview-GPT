@@ -1,0 +1,111 @@
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f0f0f0;
+    margin: 0;
+    padding: 0;
+}
+
+h1 {
+    text-align: center;
+    color: #333;
+}
+
+form {
+    display: flex;
+    justify-content: center;
+    margin: 20px;
+}
+
+input[type="text"] {
+    width: 70%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    margin-right: 10px;
+}
+
+button {
+    padding: 10px 20px;
+    border: none;
+    background-color: #4CAF50;
+    color: white;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-right: 10px;
+}
+
+button:hover {
+    background-color: #45a049;
+}
+
+.chat-container {
+    width: 80%;
+    max-width: 800px;
+    margin: 0 auto;
+    background-color: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    overflow-y: scroll;
+    max-height: 70vh;
+}
+
+.message {
+    display: flex;
+    margin-bottom: 10px;
+}
+
+.message p {
+    padding: 10px;
+    border-radius: 10px;
+    max-width: 70%;
+}
+
+.message.user p {
+    background-color: #DCF8C6;
+    align-self: flex-end;
+    margin-left: auto;
+}
+
+.message.assistant p {
+    background-color: #ECECEC;
+    align-self: flex-start;
+}
+
+.message.deviation p {
+    background-color: #FFC0CB;
+    color: black;
+}
+
+.message.system p {
+    background-color: #FFCDD2;
+    color: red;
+    align-self: center;
+    margin: 0 auto;
+}
+
+.flash-messages {
+    width: 80%;
+    max-width: 800px;
+    margin: 20px auto;
+    list-style: none;
+    padding: 0;
+}
+
+.flash-messages li {
+    background-color: #FFCDD2;
+    color: red;
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 10px;
+}
+
+.evaluation {
+    width: 80%;
+    max-width: 800px;
+    margin: 20px auto;
+    padding: 20px;
+    background-color: #fff;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}

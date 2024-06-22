@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <title>初期設定画面</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+
+<body>
+    <h1>初期設定画面</h1>
+    <form action="{{ url_for('settings') }}" method="post">
+        <label for="api_key">OpenAI API Key:</label>
+        <input type="text" id="api_key" name="api_key" required><br>
+        <label for="model">モデル選択:</label>
+        <select id="model" name="model">
+            <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+            <option value="gpt-4-turbo">GPT-4</option>
+            <option value="gpt-4o-2024-05-13">GPT-4o</option>
+        </select><br>
+        <label for="theme">テーマ:</label>
+        <input type="text" id="theme" name="theme" required><br>
+        <button type="submit">設定</button>
+    </form>
+</body>
+
+</html>

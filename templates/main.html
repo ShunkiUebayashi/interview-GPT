@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>メインシステムの画面</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <h1>面接練習</h1>
+    <form action="{{ url_for('main') }}" method="post">
+        <input type="text" id="message" name="message" placeholder="メッセージを入力..." required>
+        <button type="submit">送信</button>
+        <button type="submit" name="reset" value="reset">リセット</button>
+        <button type="submit" name="evaluate" value="evaluate">対話の評価</button>
+    </form>
+    <div class="chat-container">
+        {% for conversation in conversations %}
+            <div class="message {{ conversation.role }}">
+                <p>{{ conversation.content }}</p>
+            </div>
+        {% endfor %}
+    </div>
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <ul class="flash-messages">
+                {% for message in messages %}
+                    <li>{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    {% endwith %}
+</body>
+</html>

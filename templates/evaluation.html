@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <title>評価結果</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+
+<body>
+    <h1>対話の評価結果</h1>
+    <div class="chat-container">
+        {% for conversation in conversations %}
+        <div class="message {{ conversation.role }}{% if conversation.deviation == '逸脱' %} deviation{% endif %}">
+            <p>{{ conversation.content }}</p>
+        </div>
+        {% endfor %}
+    </div>
+    <div class="evaluation">
+        <h2>評価結果:</h2>
+        <p>{{ evaluation }}</p>
+    </div>
+    <a href="{{ url_for('main') }}">戻る</a>
+</body>
+
+</html>
