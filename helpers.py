@@ -19,6 +19,7 @@ def make_prompt_summary(theme, dialog, summary):
 
 
 def generate(model, prompt):
+    # print(model)
     response = openai.ChatCompletion.create(
         model=model,
         messages=[{"role": "system", "content": "You are a helpful assistant."}, {"role": "user", "content": prompt}],
@@ -54,8 +55,8 @@ def summarize(model, theme, conversation_history, summary):
 
 
 def senetence_juding(theme, summary, dialog):
-    print(summary)
-    print(dialog)
+    # print(summary)
+    # print(dialog)
     if len(summary) > 0:
         return f"""テーマとこれまでの対話の要約、直近の対話が与えられるので、対話がテーマから逸脱しているかどうかを判定してください。逸脱していれば「逸脱」と回答し、そうでなければ「関連」と回答してください。
 テーマ : {theme}
@@ -92,7 +93,7 @@ def result_judging(result):
 
 
 def generate_question(model, theme, summary, recent_dialog):
-    prompt = f"""以下はテーマ：{theme}についての対話です。要約と直近の対話に基づいて、テーマに関連する質問をしてください。
+    prompt = f"""以下はテーマ：{theme}についての対話です。要約と直近の対話に基づいて、テーマに関連する質問を簡潔に作成してください。
 {recent_dialog}
 質問 :"""
     return generate(model, prompt)

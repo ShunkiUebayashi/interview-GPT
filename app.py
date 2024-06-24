@@ -1,3 +1,5 @@
+import os
+
 import openai
 import openai.error
 from flask import Flask, flash, redirect, render_template, request, session, url_for
@@ -15,7 +17,7 @@ from helpers import (
 
 app = Flask(__name__)
 app.secret_key = "your_secret_key"
-summarize_num = 5
+summarization_num = 5
 
 
 @app.route("/")
@@ -26,13 +28,24 @@ def home():
 @app.route("/settings", methods=["GET", "POST"])
 def settings():
     if request.method == "POST":
-        session["api_key"] = request.form["api_key"]
+        use_env_var = "use_env_var" in request.form
+        session["use_env_var"] = use_env_var
+        if not use_env_var:
+            session["api_key"] = request.form["api_key"]
+        else:
+            session["api_key"] = os.getenv("OPENAI_API_KEY")
         session["model"] = request.form["model"]
         session["theme"] = request.form["theme"]
         session.pop("conversations", None)
         session.pop("results", None)
         session.pop("summary", None)
         session.pop("full_conversation_history", None)
+
+        # 初期メッセージを設定
+        initial_message = f"こんにちは！{session['theme']}について教えていただけますか？"
+        session["conversations"] = [{"role": "assistant", "content": initial_message}]
+        session["full_conversation_history"] = [{"role": "assistant", "content": initial_message}]
+
         flash("設定が完了し、チャットがリセットされました。")
         return redirect(url_for("main"))
     return render_template("settings.html")
@@ -49,6 +62,10 @@ def main():
             session.pop("results", None)
             session.pop("summary", None)
             session.pop("full_conversation_history", None)
+            # 初期メッセージを再設定
+            initial_message = f"こんにちは！{session['theme']}について教えていただけますか？"
+            session["conversations"] = [{"role": "assistant", "content": initial_message}]
+            session["full_conversation_history"] = [{"role": "assistant", "content": initial_message}]
             flash("チャットがリセットされました。")
             return redirect(url_for("main"))
 
@@ -89,7 +106,7 @@ def main():
             )
 
         user_message = request.form.get("message", "").strip()
-        model = request.form["model"]
+        model = request.form.get("model", session["model"])
         session["model"] = model
 
         if user_message.lower() == "exit":
@@ -122,8 +139,7 @@ def main():
 
                 # Determine if it's time to summarize
                 turn_count = len(session["full_conversation_history"]) // 2
-                print(turn_count)
-                if turn_count >= summarize_num and turn_count % summarize_num == 0:
+                if turn_count >= summarization_num and turn_count % summarization_num == 0:
                     summary = summarize(model, theme, session["full_conversation_history"], summary)
                     session["summary"] = summary
 
@@ -137,7 +153,7 @@ def main():
                 session["results"].append({"dialog": dialog, "result": jd})
 
                 # Generate the next response based on summary and recent dialog
-                if turn_count < summarize_num or turn_count % summarize_num != 0:
+                if turn_count < summarization_num or turn_count % summarization_num != 0:
                     recent_dialog = "\n".join(
                         [
                             f"{'面接官: ' if conv['role'] == 'assistant' else 'ユーザ: '}{conv['content']}"
@@ -189,6 +205,10 @@ def change_theme():
             session.pop("results", None)
             session.pop("summary", None)
             session.pop("full_conversation_history", None)
+            # 初期メッセージを再設定
+            initial_message = f"こんにちは！{session['theme']}について教えていただけますか？"
+            session["conversations"] = [{"role": "assistant", "content": initial_message}]
+            session["full_conversation_history"] = [{"role": "assistant", "content": initial_message}]
             flash("テーマが変更され、チャットがリセットされました。")
             return redirect(url_for("main"))
 
@@ -196,4 +216,4 @@ def change_theme():
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=False)

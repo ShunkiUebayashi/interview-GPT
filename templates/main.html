@@ -1,47 +1,54 @@
 <!DOCTYPE html>
 <html lang="ja">
-
 <head>
     <meta charset="UTF-8">
     <title>メインシステムの画面</title>
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
-
 <body>
-    <h1>面接練習</h1>
-    <form id="chat-form" action="{{ url_for('main') }}" method="post">
-        <input type="text" id="message" name="message" placeholder="メッセージを入力...">
-        <button type="submit">送信</button>
-        <button type="submit" name="reset" value="reset">リセット</button>
-        <button type="submit" name="evaluate" value="evaluate" {% if not conversations %}disabled{% endif
-            %}>対話の評価</button>
-        <button type="submit" name="change_theme" value="change_theme">テーマの変更</button>
-        <label for="model">モデル選択:</label>
-        <select id="model" name="model">
-            <option value="gpt-3.5-turbo" {% if session['model']=='gpt-3.5-turbo' %}selected{% endif %}>GPT-3.5 Turbo
-            </option>
-            <option value="gpt-4" {% if session['model']=='gpt-4' %}selected{% endif %}>GPT-4</option>
-            <option value="gpt-4o" {% if session['model']=='gpt-4o' %}selected{% endif %}>GPT-4o</option>
-        </select>
-    </form>
-    <div class="chat-container" id="chat-container">
-        {% for conversation in conversations %}
-        <div class="message {{ conversation.role }}{% if conversation.deviation == '逸脱' %} deviation{% endif %}">
-            <p>{{ conversation.content }}</p>
+    <div class="container-fluid d-flex flex-column h-100">
+        <h1 class="text-center mt-3">面接練習</h1>
+        <div class="top-buttons mt-3">
+            <form id="control-form" action="{{ url_for('main') }}" method="post" class="form-inline justify-content-center">
+                <button type="submit" name="reset" value="reset" class="btn btn-warning mr-2">リセット</button>
+                <button type="submit" name="evaluate" value="evaluate" class="btn btn-info mr-2" {% if not conversations %}disabled{% endif %}>対話の評価</button>
+                <button type="submit" name="change_theme" value="change_theme" class="btn btn-secondary mr-2">テーマの変更</button>
+                <div class="form-group">
+                    <label for="model" class="mr-2">モデル選択:</label>
+                    <select class="form-control" id="model" name="model" onchange="this.form.submit()">
+                        <option value="gpt-3.5-turbo" {% if session['model'] == 'gpt-3.5-turbo' %}selected{% endif %}>GPT-3.5 Turbo</option>
+                        <option value="gpt-4" {% if session['model'] == 'gpt-4' %}selected{% endif %}>GPT-4</option>
+                        <option value="gpt-4o" {% if session['model'] == 'gpt-4o' %}selected{% endif %}>GPT-4o</option>
+                    </select>
+                </div>
+            </form>
         </div>
-        {% endfor %}
+        <div class="chat-container mt-3 flex-grow-1 mx-auto" id="chat-container">
+            {% for conversation in conversations %}
+                <div class="message {{ conversation.role }}{% if conversation.deviation == '逸脱' %} deviation{% endif %}">
+                    <p>{{ conversation.content }}</p>
+                </div>
+            {% endfor %}
+        </div>
+        <div class="bottom-input mt-3">
+            <form id="chat-form" action="{{ url_for('main') }}" method="post" class="form-inline justify-content-center">
+                <input type="text" class="form-control mr-2" id="message" name="message" placeholder="メッセージを入力..." required>
+                <button type="submit" class="btn btn-primary">送信</button>
+            </form>
+        </div>
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <ul class="flash-messages mt-3">
+                    {% for message in messages %}
+                        <li class="alert alert-warning">{{ message }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        {% endwith %}
     </div>
-    {% with messages = get_flashed_messages() %}
-    {% if messages %}
-    <ul class="flash-messages">
-        {% for message in messages %}
-        <li>{{ message }}</li>
-        {% endfor %}
-    </ul>
-    {% endif %}
-    {% endwith %}
     <script>
-        document.getElementById('chat-form').addEventListener('submit', function (event) {
+        document.getElementById('chat-form').addEventListener('submit', function(event) {
             const messageInput = document.getElementById('message');
             const isEmptyMessage = messageInput.value.trim() === '';
 
@@ -57,5 +64,4 @@
         chatContainer.scrollTop = chatContainer.scrollHeight;
     </script>
 </body>
-
 </html>
